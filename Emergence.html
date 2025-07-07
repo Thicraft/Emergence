@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergence: Symbiotic Hybrids</title>
+    <style>
+        :root{--bg-color:#0a0a0c;--text-color:#c9d1d9;--header-color:#58a6ff;--control-bg:#161b22;--control-border:#30363d;}
+        body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background-color:var(--bg-color);color:var(--text-color);overflow:hidden;}
+        canvas{display:block;}
+        #toggle-panel-btn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            padding: 8px 12px;
+            background-color: rgba(22, 27, 34, 0.85);
+            border: 1px solid var(--control-border);
+            color: var(--header-color);
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        #info-panel{position:absolute;top:60px;left:10px;max-width:380px;background-color:rgba(22,27,34,0.85);border:1px solid var(--control-border);border-radius:8px;padding:15px 20px;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);max-height:calc(100vh - 80px);overflow-y:auto;transition:opacity 0.3s,visibility 0.3s;}
+        #info-panel.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+        h1{color:var(--header-color);font-weight:300;font-size:1.5em;margin-top:0;margin-bottom:10px;}
+        p{font-size:.9em;line-height:1.5;margin-top:0;margin-bottom:15px;}
+        ul {padding-left: 20px; margin-bottom: 15px;}
+        li {margin-bottom: 5px;}
+        strong{color:var(--header-color);font-weight:500;}
+        .controls-group{display:grid;grid-template-columns:1fr 2fr .5fr;align-items:center;gap:5px 10px;font-size:.9em;}
+        input[type=range]{-webkit-appearance:none;width:100%;height:5px;background:#444;border-radius:5px;outline:none;}
+        input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:15px;height:15px;background:var(--header-color);border-radius:50%;cursor:pointer;}
+        #randomizeBtn{grid-column:1 / -1;width:100%;margin-top:15px;padding:8px;background-color:var(--header-color);color:var(--bg-color);border:none;border-radius:5px;font-weight:bold;cursor:pointer;}
+        details{margin-bottom:10px;}
+        summary{font-weight:bold;cursor:pointer;color:var(--header-color);padding-bottom:5px;border-bottom:1px solid var(--control-border);margin-bottom:10px;outline:none;}
+        summary small{font-weight:300;color:var(--text-color);opacity:0.8;}
+    </style>
+</head>
+<body>
+
+    <button id="toggle-panel-btn">Hide Controls</button>
+    <div id="info-panel">
+        <h1>Symbiosis & Predation</h1>
+        <p>
+            This is a 3D simulation of three particle "species": Red, Green, and Blue. Each has its own behavioral rules, which you can adjust in the collapsible sections below.
+        </p>
+        <p>
+            They interact based on a complex relationship:
+            <ul>
+                <li><strong>Red</strong> is prey to <strong>Blue</strong>, but symbiotic with <strong>Green</strong>.</li>
+                <li><strong>Green</strong> is prey to <strong>Red</strong>, but symbiotic with <strong>Blue</strong>.</li>
+                <li><strong>Blue</strong> is prey to <strong>Green</strong>, but symbiotic with <strong>Red</strong>.</li>
+            </ul>
+            This creates emergent behaviors like flocking, predation, and the formation of symbiotic, hybrid clusters. Use the mouse to explore the space and hit 'Randomize' for new scenarios.
+        </p>
+        <div class="controls"></div>
+        <button id="randomizeBtn">Randomize All & Reset</button>
+    </div>
+
+    <script type="importmap">
+        {"imports":{"three":"https://unpkg.com/three@0.157.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.157.0/examples/jsm/"}}
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        const GLOBAL_CONFIG = {
+            PARTICLE_COUNT_PER_TYPE: 600,
+            MAX_MASS: 30.0,
+            BOX_SIZE: 1200,
+            MAX_SPEED: 4.0,
+        };
+
+        const RANGES = {
+            PLAGE_MIN: { min:0, max:200, step:1 },
+            PLAGE_MAX: { min:0, max:400, step:1 },
+            REPULSIVE_FORCE: { min:0, max:5, step:0.05 },
+            ATTRACTIVE_FORCE: { min:0, max:1, step:0.01 },
+            SYMBIOTIC_REPEL_DIST: { min:0, max:200, step:1 },
+            SYMBIOTIC_ATTRACT_DIST: { min:0, max:400, step:1 },
+            SYMBIOTIC_ATTRACT_FORCE: { min:0, max:1, step:0.01 },
+            PREDATOR_REPEL_FORCE: { min:0, max:5, step:0.05 },
+            PREDATOR_VIEW_DISTANCE: { min:0, max:500, step:1 },
+            DAMPING: { min:0.9, max:1.0, step:0.001 },
+        };
+
+        let scene, camera, renderer, controls;
+        let particleGroups = [];
+        let TYPE_CONFIGS = []; // Array of 3 config objects
+        const INTERACTION_MATRIX = [[0, 1, -1], [-1, 0, 1], [1, -1, 0]];
+        
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
+            camera.position.z = 1000;
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            setupUI();
+            randomizeConfig();
+            resetSimulation();
+            window.addEventListener('resize', () => { location.reload() });
+            document.getElementById('randomizeBtn').addEventListener('click', () => { randomizeConfig(); resetSimulation(); });
+            
+            const toggleBtn = document.getElementById('toggle-panel-btn');
+            const panel = document.getElementById('info-panel');
+            toggleBtn.addEventListener('click', () => {
+                panel.classList.toggle('hidden');
+                const isHidden = panel.classList.contains('hidden');
+                toggleBtn.textContent = isHidden ? 'Show Controls' : 'Hide Controls';
+            });
+        }
+
+        function createParticleGroup(type, color) {
+            const particles = [];
+            const geometry = new THREE.SphereGeometry(1.5, 8, 8);
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const mesh = new THREE.InstancedMesh(geometry, material, GLOBAL_CONFIG.PARTICLE_COUNT_PER_TYPE);
+            scene.add(mesh);
+
+            for (let i = 0; i < GLOBAL_CONFIG.PARTICLE_COUNT_PER_TYPE; i++) {
+                particles.push({
+                    x: (Math.random()-0.5)*GLOBAL_CONFIG.BOX_SIZE, y: (Math.random()-0.5)*GLOBAL_CONFIG.BOX_SIZE, z: (Math.random()-0.5)*GLOBAL_CONFIG.BOX_SIZE,
+                    vx: (Math.random()-0.5)*0.1, vy: (Math.random()-0.5)*0.1, vz: (Math.random()-0.5)*0.1, 
+                    mass: 1 + Math.random()*(GLOBAL_CONFIG.MAX_MASS-1), radius: 1, type
+                });
+            }
+            particles.forEach(p => p.radius = Math.pow(p.mass, 1/3) * 0.9);
+            return { particles, mesh };
+        }
+
+        function resetSimulation() {
+            particleGroups.forEach(g => scene.remove(g.mesh));
+            particleGroups = [];
+            particleGroups.push(createParticleGroup(0, 0xff4444)); // Red
+            particleGroups.push(createParticleGroup(1, 0x44ff44)); // Green
+            particleGroups.push(createParticleGroup(2, 0x4488ff)); // Blue
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            updateParticles();
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function updateGroup(group, allGroups) {
+            const matrix = new THREE.Matrix4();
+            const position = new THREE.Vector3();
+            const quaternion = new THREE.Quaternion();
+            const scale = new THREE.Vector3();
+            const halfBox = GLOBAL_CONFIG.BOX_SIZE / 2;
+
+            for (let i = 0; i < group.particles.length; i++) {
+                const p = group.particles[i];
+                const p_config = TYPE_CONFIGS[p.type];
+                let ax = 0, ay = 0, az = 0;
+
+                for(const otherGroup of allGroups) {
+                    for (const other of otherGroup.particles) {
+                        if (p === other) continue;
+
+                        let dx = other.x - p.x; let dy = other.y - p.y; let dz = other.z - p.z;
+                        if (dx > halfBox) dx -= GLOBAL_CONFIG.BOX_SIZE; else if (dx < -halfBox) dx += GLOBAL_CONFIG.BOX_SIZE;
+                        if (dy > halfBox) dy -= GLOBAL_CONFIG.BOX_SIZE; else if (dy < -halfBox) dy += GLOBAL_CONFIG.BOX_SIZE;
+                        if (dz > halfBox) dz -= GLOBAL_CONFIG.BOX_SIZE; else if (dz < -halfBox) dz += GLOBAL_CONFIG.BOX_SIZE;
+                        
+                        const distSq = dx*dx + dy*dy + dz*dz;
+                        if (distSq < 1) continue;
+
+                        if (p.type === other.type) { // --- SAME-COLOR INTERACTION ---
+                            if (distSq > p_config.PLAGE_MAX*p_config.PLAGE_MAX) continue;
+                            const dist = Math.sqrt(distSq);
+                            if (dist < p_config.PLAGE_MIN) {
+                                const force = (1-dist/p_config.PLAGE_MIN)*p_config.REPULSIVE_FORCE/p.mass;
+                                ax-=(dx/dist)*force; ay-=(dy/dist)*force; az-=(dz/dist)*force;
+                            } else {
+                                const force = (1-(dist-p_config.PLAGE_MIN)/(p_config.PLAGE_MAX-p_config.PLAGE_MIN))*p_config.ATTRACTIVE_FORCE;
+                                ax+=(dx/dist)*force; ay+=(dy/dist)*force; az+=(dz/dist)*force;
+                            }
+                        } else { // --- CROSS-COLOR INTERACTION ---
+                            const interactionType = INTERACTION_MATRIX[p.type][other.type];
+                            if (interactionType === 1) { // Symbiotic Partner
+                                if (distSq > p_config.SYMBIOTIC_ATTRACT_DIST * p_config.SYMBIOTIC_ATTRACT_DIST) continue;
+                                const dist = Math.sqrt(distSq);
+                                if (dist < p_config.SYMBIOTIC_REPEL_DIST) {
+                                    const force = (1-dist/p_config.SYMBIOTIC_REPEL_DIST)*(p_config.REPULSIVE_FORCE*0.5)/p.mass; // Softer repulsion
+                                    ax-=(dx/dist)*force; ay-=(dy/dist)*force; az-=(dz/dist)*force;
+                                } else {
+                                    const force = (1-(dist-p_config.SYMBIOTIC_REPEL_DIST)/(p_config.SYMBIOTIC_ATTRACT_DIST-p_config.SYMBIOTIC_REPEL_DIST))*p_config.SYMBIOTIC_ATTRACT_FORCE;
+                                    ax+=(dx/dist)*force; ay+=(dy/dist)*force; az+=(dz/dist)*force;
+                                }
+                            } else if (interactionType === -1) { // Predator (p is the prey)
+                                if (distSq > p_config.PREDATOR_VIEW_DISTANCE * p_config.PREDATOR_VIEW_DISTANCE) continue;
+                                const dist = Math.sqrt(distSq);
+                                const force = (1-dist/p_config.PREDATOR_VIEW_DISTANCE)*p_config.PREDATOR_REPEL_FORCE/p.mass;
+                                ax-=(dx/dist)*force; ay-=(dy/dist)*force; az-=(dz/dist)*force;
+                            }
+                        }
+                    }
+                }
+                
+                p.vx += ax; p.vy += ay; p.vz += az;
+                p.vx *= p_config.DAMPING; p.vy *= p_config.DAMPING; p.vz *= p_config.DAMPING;
+
+                const speed = Math.sqrt(p.vx*p.vx + p.vy*p.vy + p.vz*p.vz);
+                if (speed > GLOBAL_CONFIG.MAX_SPEED) { const f = GLOBAL_CONFIG.MAX_SPEED/speed; p.vx*=f; p.vy*=f; p.vz*=f; }
+                
+                p.x += p.vx; p.y += p.vy; p.z += p.vz;
+
+                if (p.x>halfBox) p.x-=GLOBAL_CONFIG.BOX_SIZE; else if (p.x<-halfBox) p.x+=GLOBAL_CONFIG.BOX_SIZE;
+                if (p.y>halfBox) p.y-=GLOBAL_CONFIG.BOX_SIZE; else if (p.y<-halfBox) p.y+=GLOBAL_CONFIG.BOX_SIZE;
+                if (p.z>halfBox) p.z-=GLOBAL_CONFIG.BOX_SIZE; else if (p.z<-halfBox) p.z+=GLOBAL_CONFIG.BOX_SIZE;
+                
+                position.set(p.x, p.y, p.z);
+                scale.set(p.radius, p.radius, p.radius);
+                matrix.compose(position, quaternion, scale);
+                group.mesh.setMatrixAt(i, matrix);
+            }
+            group.mesh.instanceMatrix.needsUpdate = true;
+        }
+
+        function updateParticles() {
+            for (const group of particleGroups) {
+                updateGroup(group, particleGroups);
+            }
+        }
+        
+        function setupUI() {
+            const container = document.querySelector('.controls');
+            container.innerHTML = '';
+            const sliderOrder = ['PLAGE_MIN','PLAGE_MAX','REPULSIVE_FORCE','ATTRACTIVE_FORCE', 'SYMBIOTIC_REPEL_DIST', 'SYMBIOTIC_ATTRACT_DIST', 'SYMBIOTIC_ATTRACT_FORCE', 'PREDATOR_REPEL_FORCE', 'PREDATOR_VIEW_DISTANCE','DAMPING'];
+            const colorInfo = [
+                { name: 'Red', relations: 'Prey to Blue, Symbiotic with Green' },
+                { name: 'Green', relations: 'Prey to Red, Symbiotic with Blue' },
+                { name: 'Blue', relations: 'Prey to Green, Symbiotic with Red' }
+            ];
+
+            colorInfo.forEach((info, typeIndex) => {
+                const details = document.createElement('details');
+                if (typeIndex === 0) details.open = true;
+                
+                const summary = document.createElement('summary');
+                summary.innerHTML = `${info.name} Group <small>(${info.relations})</small>`;
+                details.appendChild(summary);
+                
+                const controlsGroup = document.createElement('div');
+                controlsGroup.className = 'controls-group';
+                
+                for (const key of sliderOrder) {
+                    const r = RANGES[key];
+                    const labelText = key.replace(/_/g, ' ');
+                    const label = document.createElement('label');
+                    label.htmlFor = `${typeIndex}-${key}`;
+                    label.textContent = labelText;
+                    
+                    const slider = document.createElement('input');
+                    slider.type = 'range';
+                    slider.id = `${typeIndex}-${key}`;
+                    slider.min = r.min;
+                    slider.max = r.max;
+                    slider.step = r.step;
+                    
+                    const valueSpan = document.createElement('span');
+                    valueSpan.id = `${typeIndex}-${key}-value`;
+                    
+                    controlsGroup.append(label, slider, valueSpan);
+                    
+                    slider.addEventListener('input', e => {
+                        TYPE_CONFIGS[typeIndex][key] = parseFloat(e.target.value);
+                        updateUIToMatchConfig();
+                    });
+                }
+                details.appendChild(controlsGroup);
+                container.appendChild(details);
+            });
+        }
+        
+        function updateUIToMatchConfig() {
+            if (!TYPE_CONFIGS || TYPE_CONFIGS.length === 0) return;
+            TYPE_CONFIGS.forEach((config, typeIndex) => {
+                for (const key in RANGES) {
+                    const el = document.getElementById(`${typeIndex}-${key}`);
+                    if (el) {
+                        el.value = config[key];
+                        const r = RANGES[key];
+                        const p = r.step.toString().includes('.') ? r.step.toString().split('.')[1].length : 0;
+                        document.getElementById(`${typeIndex}-${key}-value`).textContent = config[key].toFixed(p);
+                    }
+                }
+            });
+        }
+        
+        function createRandomConfig() {
+            const newConfig = {};
+            for (const key in RANGES) {
+                const r = RANGES[key];
+                const p = r.step.toString().includes('.') ? r.step.toString().split('.')[1].length : 0;
+                newConfig[key] = parseFloat((Math.random() * (r.max - r.min) + r.min).toFixed(p));
+            }
+            if (newConfig.PLAGE_MIN >= newConfig.PLAGE_MAX) {
+                newConfig.PLAGE_MIN = Math.max(0, newConfig.PLAGE_MAX - 10);
+            }
+            if (newConfig.SYMBIOTIC_REPEL_DIST >= newConfig.SYMBIOTIC_ATTRACT_DIST) {
+                newConfig.SYMBIOTIC_REPEL_DIST = Math.max(0, newConfig.SYMBIOTIC_ATTRACT_DIST - 10);
+            }
+            return newConfig;
+        }
+
+        function randomizeConfig() {
+            TYPE_CONFIGS = [createRandomConfig(), createRandomConfig(), createRandomConfig()];
+            updateUIToMatchConfig();
+        }
+
+        init();
+        animate();
+    </script>
+</body>
+</html>
