@@ -71,23 +71,23 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
         const GLOBAL_CONFIG = {
-            PARTICLE_COUNT_PER_TYPE: 600,
-            MAX_MASS: 30.0,
-            BOX_SIZE: 1200,
-            MAX_SPEED: 4.0,
+            PARTICLE_COUNT_PER_TYPE: 500,
+            MAX_MASS: 50.0,
+            BOX_SIZE: 2000,
+            MAX_SPEED: 15.0,
         };
 
         const RANGES = {
-            PLAGE_MIN: { min:0, max:200, step:1 },
+            PLAGE_MIN: { min:0, max:400, step:1 },
             PLAGE_MAX: { min:0, max:400, step:1 },
             REPULSIVE_FORCE: { min:0, max:5, step:0.05 },
-            ATTRACTIVE_FORCE: { min:0, max:1, step:0.01 },
-            SYMBIOTIC_REPEL_DIST: { min:0, max:200, step:1 },
-            SYMBIOTIC_ATTRACT_DIST: { min:0, max:400, step:1 },
-            SYMBIOTIC_ATTRACT_FORCE: { min:0, max:1, step:0.01 },
+            ATTRACTIVE_FORCE: { min:0, max:5, step:0.05 },
+            SYMBIOTIC_REPEL_DIST: { min:0, max:400, step:1 },
+            SYMBIOTIC_ATTRACT_DIST: { min:0, max:500, step:1 },
+            SYMBIOTIC_ATTRACT_FORCE: { min:0, max:5, step:0.05 },
             PREDATOR_REPEL_FORCE: { min:0, max:5, step:0.05 },
             PREDATOR_VIEW_DISTANCE: { min:0, max:500, step:1 },
-            DAMPING: { min:0.9, max:1.0, step:0.001 },
+            DAMPING: { min:0.2, max:1.0, step:0.01 },
         };
 
         let scene, camera, renderer, controls;
@@ -246,7 +246,7 @@
 
             colorInfo.forEach((info, typeIndex) => {
                 const details = document.createElement('details');
-                if (typeIndex === 0) details.open = true;
+                //if (typeIndex === 0) details.open = true;
                 
                 const summary = document.createElement('summary');
                 summary.innerHTML = `${info.name} Group <small>(${info.relations})</small>`;
