@@ -8,11 +8,24 @@
         :root{--bg-color:#0a0a0c;--text-color:#c9d1d9;--header-color:#58a6ff;--control-bg:#161b22;--control-border:#30363d;}
         body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background-color:var(--bg-color);color:var(--text-color);overflow:hidden;}
         canvas{display:block;}
-        #toggle-panel-btn {
+        
+        #top-left-controls {
             position: absolute;
             top: 10px;
             left: 10px;
             z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+
+        #top-right-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+        }
+
+        #top-left-controls button, #top-right-controls button {
             padding: 8px 12px;
             background-color: rgba(22, 27, 34, 0.85);
             border: 1px solid var(--control-border);
@@ -22,13 +35,33 @@
             cursor: pointer;
             backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
+            border: 1px solid var(--control-border);
         }
-        #info-panel{position:absolute;top:60px;left:10px;max-width:380px;background-color:rgba(22,27,34,0.85);border:1px solid var(--control-border);border-radius:8px;padding:15px 20px;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);max-height:calc(100vh - 80px);overflow-y:auto;transition:opacity 0.3s,visibility 0.3s;}
-        #info-panel.hidden {
+
+        #info-panel, #metrics-panel {
+            position:absolute;
+            top:60px;
+            background-color:rgba(22,27,34,0.85);
+            border:1px solid var(--control-border);
+            border-radius:8px;
+            padding:15px 20px;
+            backdrop-filter:blur(5px);
+            -webkit-backdrop-filter:blur(5px);
+            max-height:calc(100vh - 80px);
+            overflow-y:auto;
+            transition:opacity 0.3s,visibility 0.3s;
+        }
+        
+        #info-panel { left:10px; max-width:380px; }
+        #metrics-panel { right:10px; width: 320px; display: flex; flex-direction: column; gap: 15px; }
+        
+        #info-panel.hidden, #metrics-panel.hidden {
             opacity: 0;
             visibility: hidden;
         }
+        
         h1{color:var(--header-color);font-weight:300;font-size:1.5em;margin-top:0;margin-bottom:10px;}
+        h3{color:var(--header-color);font-weight:400;font-size:1em;margin:0 0 8px 0;text-align: center; border-bottom: 1px solid var(--control-border); padding-bottom: 5px;}
         p{font-size:.9em;line-height:1.5;margin-top:0;margin-bottom:15px;}
         ul {padding-left: 20px; margin-bottom: 15px;}
         li {margin-bottom: 5px;}
@@ -36,32 +69,55 @@
         .controls-group{display:grid;grid-template-columns:1fr 2fr .5fr;align-items:center;gap:5px 10px;font-size:.9em;}
         input[type=range]{-webkit-appearance:none;width:100%;height:5px;background:#444;border-radius:5px;outline:none;}
         input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:15px;height:15px;background:var(--header-color);border-radius:50%;cursor:pointer;}
-        #randomizeBtn{grid-column:1 / -1;width:100%;margin-top:15px;padding:8px;background-color:var(--header-color);color:var(--bg-color);border:none;border-radius:5px;font-weight:bold;cursor:pointer;}
         details{margin-bottom:10px;}
         summary{font-weight:bold;cursor:pointer;color:var(--header-color);padding-bottom:5px;border-bottom:1px solid var(--control-border);margin-bottom:10px;outline:none;}
         summary small{font-weight:300;color:var(--text-color);opacity:0.8;}
+        .chart-container canvas { width: 100%; height: 120px; background-color: transparent; border-radius: 4px; border: 1px solid var(--control-border);}
     </style>
 </head>
 <body>
+    
+    <div id="top-left-controls">
+        <button id="toggle-panel-btn">Show Controls</button>
+        <button id="randomize-btn">Randomize</button>
+    </div>
 
-    <button id="toggle-panel-btn">Hide Controls</button>
-    <div id="info-panel">
-        <h1>Symbiosis & Predation</h1>
+    <div id="top-right-controls">
+        <button id="toggle-metrics-btn">Show Metrics</button>
+    </div>
+
+    <div id="info-panel" class="hidden">
+        <h1>Symbiosis, Predation & Chaos</h1>
         <p>
-            This is a 3D simulation of three particle "species": Red, Green, and Blue. Each has its own behavioral rules, which you can adjust in the collapsible sections below.
-        </p>
-        <p>
-            They interact based on a complex relationship:
-            <ul>
-                <li><strong>Red</strong> is prey to <strong>Blue</strong>, but symbiotic with <strong>Green</strong>.</li>
-                <li><strong>Green</strong> is prey to <strong>Red</strong>, but symbiotic with <strong>Blue</strong>.</li>
-                <li><strong>Blue</strong> is prey to <strong>Green</strong>, but symbiotic with <strong>Red</strong>.</li>
-            </ul>
-            This creates emergent behaviors like flocking, predation, and the formation of symbiotic, hybrid clusters. Use the mouse to explore the space and hit 'Randomize' for new scenarios.
+           This simulation runs on a set of rules designed for constant change and balance:
+           <ul>
+               <li>When <strong>different colors</strong> collide (e.g. Red + Blue), one is randomly chosen to become the third color (Green).</li>
+               <li>When <strong>the same color</strong> collides (e.g. Red + Red), they "fission" into the other two colors (one becomes Green, the other Blue).</li>
+           </ul>
+           This prevents any single color from dominating and forces dynamic interactions.
         </p>
         <div class="controls"></div>
-        <button id="randomizeBtn">Randomize All & Reset</button>
     </div>
+    
+    <div id="metrics-panel" class="hidden">
+        <div class="chart-container">
+            <h3>Population</h3>
+            <canvas id="population-chart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Intra-Color Collisions / frame</h3>
+            <canvas id="intra-collision-chart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Inter-Color Collisions / frame</h3>
+            <canvas id="inter-collision-chart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Average Velocity</h3>
+            <canvas id="velocity-chart"></canvas>
+        </div>
+    </div>
+
 
     <script type="importmap">
         {"imports":{"three":"https://unpkg.com/three@0.157.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.157.0/examples/jsm/"}}
@@ -92,148 +148,360 @@
 
         let scene, camera, renderer, controls;
         let particleGroups = [];
-        let TYPE_CONFIGS = []; // Array of 3 config objects
+        let allParticles = [];
+        let particleMaterials = [];
+        let TYPE_CONFIGS = []; 
         const INTERACTION_MATRIX = [[0, 1, -1], [-1, 0, 1], [1, -1, 0]];
         
+        let metrics = {
+            intraCollisions: [0, 0, 0],
+            interCollisions: [0, 0, 0],
+            totalVelocity: [0, 0, 0],
+            avgVelocity: [0, 0, 0],
+            population: [0, 0, 0]
+        };
+        let populationGraph, intraCollisionGraph, interCollisionGraph, velocityGraph;
+        
+                class SimpleGraph {
+            constructor(canvasId, config = {}) {
+                this.canvas = document.getElementById(canvasId);
+                if (!this.canvas) { console.error(`Canvas with id ${canvasId} not found.`); return; }
+                this.ctx = this.canvas.getContext('2d');
+
+                this.config = {
+                    maxLength: config.maxLength || 200,
+                    colors: config.colors || ['#ff4444', '#44ff44', '#4488ff'],
+                    maxVal: config.maxVal || null, // Use null to enable auto-scaling
+                    autoScale: config.autoScale !== false, // Defaults to true
+                    minVal: config.minVal || 1, // The lowest value the Y-axis can scale to
+                };
+                this.history = [];
+                // This value is used to smoothly animate the scale changes
+                this.displayMaxVal = this.config.minVal;
+            }
+
+            addDataPoint(dataPoint) {
+                this.history.push(dataPoint);
+                if (this.history.length > this.config.maxLength) {
+                    this.history.shift();
+                }
+            }
+
+                        draw() {
+                if (!this.ctx) return;
+
+                // --- SHARPNESS FIX 1: HIGH-DPI SCALING ---
+                // This tells the canvas to use all the physical pixels on your screen,
+                // preventing the browser from stretching and blurring the image.
+                const dpr = window.devicePixelRatio || 1;
+                if (this.canvas.width !== this.canvas.clientWidth * dpr || this.canvas.height !== this.canvas.clientHeight * dpr) {
+                    this.canvas.width = this.canvas.clientWidth * dpr;
+                    this.canvas.height = this.canvas.clientHeight * dpr;
+                }
+                const { width, height } = this.canvas;
+
+                let maxVal;
+                if (this.config.autoScale && this.config.maxVal === null) {
+                    let currentMax = 0;
+                    const lookback = Math.min(this.history.length, 50);
+                    for (let i = 0; i < lookback; i++) {
+                        const dataPoint = this.history[this.history.length - 1 - i];
+                        for (const value of dataPoint) {
+                            if (value > currentMax) currentMax = value;
+                        }
+                    }
+                    const targetMax = Math.max(this.config.minVal, currentMax * 1.25);
+                    this.displayMaxVal += (targetMax - this.displayMaxVal) * 0.1;
+                    maxVal = this.displayMaxVal;
+                } else {
+                    maxVal = this.config.maxVal || 1;
+                }
+                if (maxVal === 0) maxVal = 1;
+                
+                // --- SHARPNESS FIX 2: REDUCE THE "GLOW" ---
+                // The last number in rgba is opacity. A higher value (e.g., 0.4) clears
+                // the previous frame more, reducing the trail/glow effect.
+                this.ctx.fillStyle = 'rgba(10, 10, 12, 0.4)';
+                this.ctx.fillRect(0, 0, width, height);
+
+                const numDataPoints = this.history.length;
+                if (numDataPoints < 2) return;
+
+                // We multiply lineWidth by 'dpr' to keep it looking sharp and consistent.
+                this.ctx.lineWidth = 1.5 * dpr;
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+                
+                for (let lineIndex = 0; lineIndex < this.config.colors.length; lineIndex++) {
+                    this.ctx.strokeStyle = this.config.colors[lineIndex];
+                    this.ctx.beginPath();
+                    for (let i = 0; i < numDataPoints; i++) {
+                        const x = (i / (numDataPoints - 1)) * width;
+                        const y = height - (this.history[i][lineIndex] / maxVal) * height;
+                        if (i === 0) this.ctx.moveTo(x, y);
+                        else this.ctx.lineTo(x, y);
+                    }
+                    this.ctx.stroke();
+                }
+            }
+        }
+
+
         function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
-            camera.position.z = 1000;
+            camera.position.z = 700;
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
             controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
+            
             setupUI();
+            
             randomizeConfig();
             resetSimulation();
             window.addEventListener('resize', () => { location.reload() });
-            document.getElementById('randomizeBtn').addEventListener('click', () => { randomizeConfig(); resetSimulation(); });
+            
+            document.getElementById('randomize-btn').addEventListener('click', () => { 
+                randomizeConfig(); 
+                resetSimulation(); 
+            });
             
             const toggleBtn = document.getElementById('toggle-panel-btn');
             const panel = document.getElementById('info-panel');
+            toggleBtn.textContent = panel.classList.contains('hidden') ? 'Show Controls' : 'Hide Controls';
             toggleBtn.addEventListener('click', () => {
                 panel.classList.toggle('hidden');
-                const isHidden = panel.classList.contains('hidden');
-                toggleBtn.textContent = isHidden ? 'Show Controls' : 'Hide Controls';
+                toggleBtn.textContent = panel.classList.contains('hidden') ? 'Show Controls' : 'Hide Controls';
+            });
+            
+            const toggleMetricsBtn = document.getElementById('toggle-metrics-btn');
+            const metricsPanel = document.getElementById('metrics-panel');
+            toggleMetricsBtn.textContent = metricsPanel.classList.contains('hidden') ? 'Show Metrics' : 'Hide Metrics';
+            toggleMetricsBtn.addEventListener('click', () => {
+                metricsPanel.classList.toggle('hidden');
+                toggleMetricsBtn.textContent = metricsPanel.classList.contains('hidden') ? 'Show Metrics' : 'Hide Metrics';
             });
         }
 
-        function createParticleGroup(type, color) {
+        function createParticleGroup(type, material) {
             const particles = [];
-            const geometry = new THREE.SphereGeometry(1.5, 8, 8);
-            const material = new THREE.MeshBasicMaterial({ color: color });
-            const mesh = new THREE.InstancedMesh(geometry, material, GLOBAL_CONFIG.PARTICLE_COUNT_PER_TYPE);
-            scene.add(mesh);
+            const geometry = new THREE.SphereGeometry(1, 8, 8);
 
             for (let i = 0; i < GLOBAL_CONFIG.PARTICLE_COUNT_PER_TYPE; i++) {
-                particles.push({
+                const mass = 1 + Math.random()*(GLOBAL_CONFIG.MAX_MASS-1);
+                const radius = Math.pow(mass, 1/3) * 1.2;
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.scale.set(radius, radius, radius);
+
+                const particle = {
                     x: (Math.random()-0.5)*GLOBAL_CONFIG.BOX_SIZE, y: (Math.random()-0.5)*GLOBAL_CONFIG.BOX_SIZE, z: (Math.random()-0.5)*GLOBAL_CONFIG.BOX_SIZE,
                     vx: (Math.random()-0.5)*0.1, vy: (Math.random()-0.5)*0.1, vz: (Math.random()-0.5)*0.1, 
-                    mass: 1 + Math.random()*(GLOBAL_CONFIG.MAX_MASS-1), radius: 1, type
-                });
+                    ax: 0, ay: 0, az: 0, 
+                    mass, radius, type, mesh, canChangeColor: true
+                };
+                scene.add(mesh);
+                particles.push(particle);
             }
-            particles.forEach(p => p.radius = Math.pow(p.mass, 1/3) * 0.9);
-            return { particles, mesh };
+            return particles;
         }
 
         function resetSimulation() {
-            particleGroups.forEach(g => scene.remove(g.mesh));
-            particleGroups = [];
-            particleGroups.push(createParticleGroup(0, 0xff4444)); // Red
-            particleGroups.push(createParticleGroup(1, 0x44ff44)); // Green
-            particleGroups.push(createParticleGroup(2, 0x4488ff)); // Blue
+            for(const p of allParticles) { scene.remove(p.mesh); p.mesh.geometry.dispose(); }
+            if(particleMaterials.length > 0) { particleMaterials.forEach(m => m.dispose()); }
+            allParticles = []; particleGroups = [];
+            
+            particleMaterials = [
+                new THREE.MeshBasicMaterial({ color: 0xff4444 }),
+                new THREE.MeshBasicMaterial({ color: 0x44ff44 }),
+                new THREE.MeshBasicMaterial({ color: 0x4488ff })
+            ];
+
+            setupMetrics();
+
+            const groupRed = createParticleGroup(0, particleMaterials[0]);
+            const groupGreen = createParticleGroup(1, particleMaterials[1]);
+            const groupBlue = createParticleGroup(2, particleMaterials[2]);
+            particleGroups.push(groupRed, groupGreen, groupBlue);
+            allParticles.push(...groupRed, ...groupGreen, ...groupBlue);
         }
 
         function animate() {
             requestAnimationFrame(animate);
+            
+            metrics.intraCollisions = [0, 0, 0];
+            metrics.interCollisions = [0, 0, 0];
+
             updateParticles();
+            
+            calculatePostUpdateMetrics();
+            updateGraphs();
+
             controls.update();
             renderer.render(scene, camera);
         }
 
-        function updateGroup(group, allGroups) {
-            const matrix = new THREE.Matrix4();
-            const position = new THREE.Vector3();
-            const quaternion = new THREE.Quaternion();
-            const scale = new THREE.Vector3();
+        function updateParticles() {
+            for (const p of allParticles) {
+                p.canChangeColor = true;
+                calculateForcesForParticle(p);
+            }
+
+            const colorChanges = handleCollisions();
+            if (colorChanges.length > 0) {
+                applyColorChanges(colorChanges);
+            }
+
+            for (const p of allParticles) {
+                updateParticleStateAndMesh(p);
+            }
+        }
+
+        function calculateForcesForParticle(p) {
+            const p_config = TYPE_CONFIGS[p.type];
+            p.ax = 0; p.ay = 0; p.az = 0;
             const halfBox = GLOBAL_CONFIG.BOX_SIZE / 2;
 
-            for (let i = 0; i < group.particles.length; i++) {
-                const p = group.particles[i];
-                const p_config = TYPE_CONFIGS[p.type];
-                let ax = 0, ay = 0, az = 0;
+            for (const other of allParticles) {
+                if (p === other) continue;
+                let dx = other.x - p.x; let dy = other.y - p.y; let dz = other.z - p.z;
+                if (dx > halfBox) dx -= GLOBAL_CONFIG.BOX_SIZE; else if (dx < -halfBox) dx += GLOBAL_CONFIG.BOX_SIZE;
+                if (dy > halfBox) dy -= GLOBAL_CONFIG.BOX_SIZE; else if (dy < -halfBox) dy += GLOBAL_CONFIG.BOX_SIZE;
+                if (dz > halfBox) dz -= GLOBAL_CONFIG.BOX_SIZE; else if (dz < -halfBox) dz += GLOBAL_CONFIG.BOX_SIZE;
+                const distSq = dx*dx + dy*dy + dz*dz;
+                if (distSq < 1e-9) continue; 
+                const dist = Math.sqrt(distSq);
 
-                for(const otherGroup of allGroups) {
-                    for (const other of otherGroup.particles) {
-                        if (p === other) continue;
+                if (p.type === other.type) {
+                    if (dist > p_config.PLAGE_MAX) continue;
+                    if (dist < p_config.PLAGE_MIN) {
+                        const force = (1-dist/p_config.PLAGE_MIN)*p_config.REPULSIVE_FORCE/p.mass;
+                        p.ax-=(dx/dist)*force; p.ay-=(dy/dist)*force; p.az-=(dz/dist)*force;
+                    } else {
+                        const force = (1-(dist-p_config.PLAGE_MIN)/(p_config.PLAGE_MAX-p_config.PLAGE_MIN))*p_config.ATTRACTIVE_FORCE;
+                        p.ax+=(dx/dist)*force; p.ay+=(dy/dist)*force; p.az+=(dz/dist)*force;
+                    }
+                } else {
+                    const interactionType = INTERACTION_MATRIX[p.type][other.type];
+                    if (interactionType === 1) { // Symbiotic
+                        if (dist > p_config.SYMBIOTIC_ATTRACT_DIST) continue;
+                        if (dist < p_config.SYMBIOTIC_REPEL_DIST) {
+                            const force = (1-dist/p_config.SYMBIOTIC_REPEL_DIST)*(p_config.REPULSIVE_FORCE*0.5)/p.mass;
+                            p.ax-=(dx/dist)*force; p.ay-=(dy/dist)*force; p.az-=(dz/dist)*force;
+                        } else {
+                            const force = (1-(dist-p_config.SYMBIOTIC_REPEL_DIST)/(p_config.SYMBIOTIC_ATTRACT_DIST-p_config.SYMBIOTIC_REPEL_DIST))*p_config.SYMBIOTIC_ATTRACT_FORCE;
+                            p.ax+=(dx/dist)*force; p.ay+=(dy/dist)*force; p.az+=(dz/dist)*force;
+                        }
+                    } else if (interactionType === -1) { // Predator (p is prey)
+                        if (dist > p_config.PREDATOR_VIEW_DISTANCE) continue;
+                        const force = (1-dist/p_config.PREDATOR_VIEW_DISTANCE)*p_config.PREDATOR_REPEL_FORCE/p.mass;
+                        p.ax-=(dx/dist)*force; p.ay-=(dy/dist)*force; p.az-=(dz/dist)*force;
+                    }
+                }
+            }
+        }
 
-                        let dx = other.x - p.x; let dy = other.y - p.y; let dz = other.z - p.z;
-                        if (dx > halfBox) dx -= GLOBAL_CONFIG.BOX_SIZE; else if (dx < -halfBox) dx += GLOBAL_CONFIG.BOX_SIZE;
-                        if (dy > halfBox) dy -= GLOBAL_CONFIG.BOX_SIZE; else if (dy < -halfBox) dy += GLOBAL_CONFIG.BOX_SIZE;
-                        if (dz > halfBox) dz -= GLOBAL_CONFIG.BOX_SIZE; else if (dz < -halfBox) dz += GLOBAL_CONFIG.BOX_SIZE;
+        function handleCollisions() {
+            const halfBox = GLOBAL_CONFIG.BOX_SIZE / 2;
+            const colorChanges = [];
+
+            for (let i = 0; i < allParticles.length; i++) {
+                const p1 = allParticles[i];
+                for (let j = i + 1; j < allParticles.length; j++) {
+                    const p2 = allParticles[j];
+                    let dx = p2.x - p1.x; let dy = p2.y - p1.y; let dz = p2.z - p1.z;
+                    if (dx > halfBox) dx -= GLOBAL_CONFIG.BOX_SIZE; else if (dx < -halfBox) dx += GLOBAL_CONFIG.BOX_SIZE;
+                    if (dy > halfBox) dy -= GLOBAL_CONFIG.BOX_SIZE; else if (dy < -halfBox) dy += GLOBAL_CONFIG.BOX_SIZE;
+                    if (dz > halfBox) dz -= GLOBAL_CONFIG.BOX_SIZE; else if (dz < -halfBox) dz += GLOBAL_CONFIG.BOX_SIZE;
+                    const distSq = dx*dx + dy*dy + dz*dz;
+                    const combinedRadius = p1.radius + p2.radius;
+
+                    if (distSq < combinedRadius * combinedRadius) {
+                        if (p1.type === p2.type) {
+                            metrics.intraCollisions[p1.type]++;
+                        } else {
+                            metrics.interCollisions[p1.type]++;
+                            metrics.interCollisions[p2.type]++;
+                        }
+
+                        if (distSq < 1e-9) continue;
                         
-                        const distSq = dx*dx + dy*dy + dz*dz;
-                        if (distSq < 1) continue;
+                        const dist = Math.sqrt(distSq);
+                        const nx = dx / dist; const ny = dy / dist; const nz = dz / dist;
+                        const overlap = 0.51 * (combinedRadius - dist);
+                        p1.x -= overlap * nx; p1.y -= overlap * ny; p1.z -= overlap * nz;
+                        p2.x += overlap * nx; p2.y += overlap * ny; p2.z += overlap * nz;
+                        const v1n = p1.vx * nx + p1.vy * ny + p1.vz * nz;
+                        const v2n = p2.vx * nx + p2.vy * ny + p2.vz * nz;
+                        
+                        if (v1n <= v2n) {
+                            const m1 = p1.mass; const m2 = p2.mass;
+                            const new_v1n = (v1n * (m1 - m2) + 2 * m2 * v2n) / (m1 + m2);
+                            const new_v2n = (v2n * (m2 - m1) + 2 * m1 * v1n) / (m1 + m2);
+                            const dv1 = new_v1n - v1n; const dv2 = new_v2n - v2n;
+                            p1.vx += dv1 * nx; p1.vy += dv1 * ny; p1.vz += dv1 * nz;
+                            p2.vx += dv2 * nx; p2.vy += dv2 * ny; p2.vz += dv2 * nz;
 
-                        if (p.type === other.type) { // --- SAME-COLOR INTERACTION ---
-                            if (distSq > p_config.PLAGE_MAX*p_config.PLAGE_MAX) continue;
-                            const dist = Math.sqrt(distSq);
-                            if (dist < p_config.PLAGE_MIN) {
-                                const force = (1-dist/p_config.PLAGE_MIN)*p_config.REPULSIVE_FORCE/p.mass;
-                                ax-=(dx/dist)*force; ay-=(dy/dist)*force; az-=(dz/dist)*force;
-                            } else {
-                                const force = (1-(dist-p_config.PLAGE_MIN)/(p_config.PLAGE_MAX-p_config.PLAGE_MIN))*p_config.ATTRACTIVE_FORCE;
-                                ax+=(dx/dist)*force; ay+=(dy/dist)*force; az+=(dz/dist)*force;
-                            }
-                        } else { // --- CROSS-COLOR INTERACTION ---
-                            const interactionType = INTERACTION_MATRIX[p.type][other.type];
-                            if (interactionType === 1) { // Symbiotic Partner
-                                if (distSq > p_config.SYMBIOTIC_ATTRACT_DIST * p_config.SYMBIOTIC_ATTRACT_DIST) continue;
-                                const dist = Math.sqrt(distSq);
-                                if (dist < p_config.SYMBIOTIC_REPEL_DIST) {
-                                    const force = (1-dist/p_config.SYMBIOTIC_REPEL_DIST)*(p_config.REPULSIVE_FORCE*0.5)/p.mass; // Softer repulsion
-                                    ax-=(dx/dist)*force; ay-=(dy/dist)*force; az-=(dz/dist)*force;
+                            if (p1.canChangeColor && p2.canChangeColor) {
+                                if (p1.type === p2.type) {
+                                    const typeA = p1.type;
+                                    const typeB = (typeA + 1) % 3;
+                                    const typeC = (typeA + 2) % 3;
+                                    colorChanges.push({ particle: p1, newType: typeB });
+                                    colorChanges.push({ particle: p2, newType: typeC });
+                                    p1.canChangeColor = false; p2.canChangeColor = false;
                                 } else {
-                                    const force = (1-(dist-p_config.SYMBIOTIC_REPEL_DIST)/(p_config.SYMBIOTIC_ATTRACT_DIST-p_config.SYMBIOTIC_REPEL_DIST))*p_config.SYMBIOTIC_ATTRACT_FORCE;
-                                    ax+=(dx/dist)*force; ay+=(dy/dist)*force; az+=(dz/dist)*force;
+                                    const newType = 3 - p1.type - p2.type;
+                                    const particleToChange = Math.random() < 0.5 ? p1 : p2;
+                                    colorChanges.push({ particle: particleToChange, newType: newType });
+                                    p1.canChangeColor = false; p2.canChangeColor = false;
                                 }
-                            } else if (interactionType === -1) { // Predator (p is the prey)
-                                if (distSq > p_config.PREDATOR_VIEW_DISTANCE * p_config.PREDATOR_VIEW_DISTANCE) continue;
-                                const dist = Math.sqrt(distSq);
-                                const force = (1-dist/p_config.PREDATOR_VIEW_DISTANCE)*p_config.PREDATOR_REPEL_FORCE/p.mass;
-                                ax-=(dx/dist)*force; ay-=(dy/dist)*force; az-=(dz/dist)*force;
                             }
                         }
                     }
                 }
-                
-                p.vx += ax; p.vy += ay; p.vz += az;
-                p.vx *= p_config.DAMPING; p.vy *= p_config.DAMPING; p.vz *= p_config.DAMPING;
-
-                const speed = Math.sqrt(p.vx*p.vx + p.vy*p.vy + p.vz*p.vz);
-                if (speed > GLOBAL_CONFIG.MAX_SPEED) { const f = GLOBAL_CONFIG.MAX_SPEED/speed; p.vx*=f; p.vy*=f; p.vz*=f; }
-                
-                p.x += p.vx; p.y += p.vy; p.z += p.vz;
-
-                if (p.x>halfBox) p.x-=GLOBAL_CONFIG.BOX_SIZE; else if (p.x<-halfBox) p.x+=GLOBAL_CONFIG.BOX_SIZE;
-                if (p.y>halfBox) p.y-=GLOBAL_CONFIG.BOX_SIZE; else if (p.y<-halfBox) p.y+=GLOBAL_CONFIG.BOX_SIZE;
-                if (p.z>halfBox) p.z-=GLOBAL_CONFIG.BOX_SIZE; else if (p.z<-halfBox) p.z+=GLOBAL_CONFIG.BOX_SIZE;
-                
-                position.set(p.x, p.y, p.z);
-                scale.set(p.radius, p.radius, p.radius);
-                matrix.compose(position, quaternion, scale);
-                group.mesh.setMatrixAt(i, matrix);
             }
-            group.mesh.instanceMatrix.needsUpdate = true;
+            return colorChanges;
         }
 
-        function updateParticles() {
-            for (const group of particleGroups) {
-                updateGroup(group, particleGroups);
-            }
+        function applyColorChanges(changes) {
+            const uniqueChanges = new Map();
+            for(const change of changes){ uniqueChanges.set(change.particle, change.newType); }
+
+            uniqueChanges.forEach((newType, particle) => {
+                const oldType = particle.type;
+                if (oldType === newType) return;
+                
+                const oldGroup = particleGroups[oldType];
+                const indexInOldGroup = oldGroup.indexOf(particle);
+                if (indexInOldGroup > -1) { oldGroup.splice(indexInOldGroup, 1); }
+
+                const newGroup = particleGroups[newType];
+                newGroup.push(particle);
+
+                particle.type = newType;
+                particle.mesh.material = particleMaterials[newType];
+            });
         }
-        
+
+        function updateParticleStateAndMesh(p) {
+            const p_config = TYPE_CONFIGS[p.type];
+            const halfBox = GLOBAL_CONFIG.BOX_SIZE / 2;
+            p.vx += p.ax; p.vy += p.ay; p.vz += p.az;
+            p.vx *= p_config.DAMPING; p.vy *= p_config.DAMPING; p.vz *= p_config.DAMPING;
+            const speed = Math.sqrt(p.vx*p.vx + p.vy*p.vy + p.vz*p.vz);
+            if (speed > GLOBAL_CONFIG.MAX_SPEED) {
+                const f = GLOBAL_CONFIG.MAX_SPEED/speed;
+                p.vx*=f; p.vy*=f; p.vz*=f;
+            }
+            p.x += p.vx; p.y += p.vy; p.z += p.vz;
+            if (p.x>halfBox) p.x-=GLOBAL_CONFIG.BOX_SIZE; else if (p.x<-halfBox) p.x+=GLOBAL_CONFIG.BOX_SIZE;
+            if (p.y>halfBox) p.y-=GLOBAL_CONFIG.BOX_SIZE; else if (p.y<-halfBox) p.y+=GLOBAL_CONFIG.BOX_SIZE;
+            if (p.z>halfBox) p.z-=GLOBAL_CONFIG.BOX_SIZE; else if (p.z<-halfBox) p.z+=GLOBAL_CONFIG.BOX_SIZE;
+            p.mesh.position.set(p.x, p.y, p.z);
+        }
+
         function setupUI() {
             const container = document.querySelector('.controls');
             container.innerHTML = '';
@@ -246,12 +514,9 @@
 
             colorInfo.forEach((info, typeIndex) => {
                 const details = document.createElement('details');
-                //if (typeIndex === 0) details.open = true;
-                
                 const summary = document.createElement('summary');
                 summary.innerHTML = `${info.name} Group <small>(${info.relations})</small>`;
                 details.appendChild(summary);
-                
                 const controlsGroup = document.createElement('div');
                 controlsGroup.className = 'controls-group';
                 
@@ -261,19 +526,12 @@
                     const label = document.createElement('label');
                     label.htmlFor = `${typeIndex}-${key}`;
                     label.textContent = labelText;
-                    
                     const slider = document.createElement('input');
-                    slider.type = 'range';
-                    slider.id = `${typeIndex}-${key}`;
-                    slider.min = r.min;
-                    slider.max = r.max;
-                    slider.step = r.step;
-                    
+                    slider.type = 'range'; slider.id = `${typeIndex}-${key}`;
+                    slider.min = r.min; slider.max = r.max; slider.step = r.step;
                     const valueSpan = document.createElement('span');
                     valueSpan.id = `${typeIndex}-${key}-value`;
-                    
                     controlsGroup.append(label, slider, valueSpan);
-                    
                     slider.addEventListener('input', e => {
                         TYPE_CONFIGS[typeIndex][key] = parseFloat(e.target.value);
                         updateUIToMatchConfig();
@@ -284,6 +542,52 @@
             });
         }
         
+                function setupMetrics() {
+            const lineColors = [particleMaterials[0].color.getStyle(), particleMaterials[1].color.getStyle(), particleMaterials[2].color.getStyle()];
+            
+            // Population and Velocity have fixed scales (autoScale: false is default when maxVal is set)
+            populationGraph = new SimpleGraph('population-chart', { colors: lineColors, maxVal: GLOBAL_CONFIG.PARTICLE_COUNT_PER_TYPE * 3 });
+            velocityGraph = new SimpleGraph('velocity-chart', { colors: lineColors, maxVal: GLOBAL_CONFIG.MAX_SPEED });
+
+            // Collisions will now auto-scale. We just set a minimum scale value.
+            intraCollisionGraph = new SimpleGraph('intra-collision-chart', { colors: lineColors, minVal: 5 });
+            interCollisionGraph = new SimpleGraph('inter-collision-chart', { colors: lineColors, minVal: 5 });
+        }
+        
+        function calculatePostUpdateMetrics() {
+            metrics.totalVelocity = [0, 0, 0];
+            metrics.avgVelocity = [0, 0, 0];
+            metrics.population = [0, 0, 0];
+
+            for (let i = 0; i < 3; i++) {
+                metrics.population[i] = particleGroups[i] ? particleGroups[i].length : 0;
+            }
+
+            for (const p of allParticles) {
+                const speed = Math.sqrt(p.vx*p.vx + p.vy*p.vy + p.vz*p.vz);
+                metrics.totalVelocity[p.type] += speed;
+            }
+            
+            for (let i = 0; i < 3; i++) {
+                metrics.avgVelocity[i] = (metrics.population[i] > 0) ? (metrics.totalVelocity[i] / metrics.population[i]) : 0;
+            }
+        }
+        
+        function updateGraphs() {
+            populationGraph.addDataPoint(metrics.population);
+            intraCollisionGraph.addDataPoint(metrics.intraCollisions);
+            interCollisionGraph.addDataPoint(metrics.interCollisions);
+            velocityGraph.addDataPoint(metrics.avgVelocity);
+            
+            const metricsPanel = document.getElementById('metrics-panel');
+            if (!metricsPanel.classList.contains('hidden')) {
+                populationGraph.draw();
+                intraCollisionGraph.draw();
+                interCollisionGraph.draw();
+                velocityGraph.draw();
+            }
+        }
+
         function updateUIToMatchConfig() {
             if (!TYPE_CONFIGS || TYPE_CONFIGS.length === 0) return;
             TYPE_CONFIGS.forEach((config, typeIndex) => {
