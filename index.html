@@ -4,117 +4,119 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Emergence: Symbiotic Hybrids</title>
+    <!-- Added FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        :root{--bg-color:#0a0a0c;--text-color:#c9d1d9;--header-color:#58a6ff;--control-bg:#161b22;--control-border:#30363d;}
+        :root{--bg-color:#0a0a0c;--text-color:#c9d1d9;--header-color:#58a6ff;--control-bg:#161b22;--control-border:#30363d;--icon-color:#8b949e;}
         body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background-color:var(--bg-color);color:var(--text-color);overflow:hidden;}
         canvas{display:block;}
         
-        #top-left-controls {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 100;
-            display: flex;
-            gap: 10px;
-        }
-
-        #top-right-controls {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 100;
-        }
-
-        #top-left-controls button, #top-right-controls button, #presets-panel button {
-            padding: 8px 12px;
-            background-color: rgba(22, 27, 34, 0.85);
-            border: 1px solid var(--control-border);
-            color: var(--header-color);
-            border-radius: 5px;
-            font-weight: bold;
-            cursor: pointer;
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-            border: 1px solid var(--control-border);
-        }
-
-        #info-panel, #metrics-panel, #presets-panel {
+        /* --- Panel & Control Styling (from new code) --- */
+        .panel {
             position:absolute;
-            top:60px;
-            background-color:rgba(22,27,34,0.85);
+            background-color:rgba(22,27,34,0.9);
             border:1px solid var(--control-border);
             border-radius:8px;
             padding:15px 20px;
-            backdrop-filter:blur(5px);
-            -webkit-backdrop-filter:blur(5px);
-            max-height:calc(100vh - 80px);
+            backdrop-filter:blur(8px);
+            -webkit-backdrop-filter:blur(8px);
+            max-height:calc(100vh - 140px); /* Adjusted for bottom bar */
             overflow-y:auto;
             transition:opacity 0.3s,visibility 0.3s;
+            z-index: 100;
         }
+        .panel.hidden { opacity:0; visibility:hidden; }
         
-        #info-panel { left:10px; max-width:380px; }
-        #metrics-panel { right:10px; width: 320px; display: flex; flex-direction: column; gap: 15px; }
-        
-        #presets-panel {
-            left: 10px;
-            top: 110px;
-            width: 150px;
+        #top-left-controls, #top-right-controls {
+            position: absolute;
+            top: 10px;
+            z-index: 101;
             display: flex;
-            flex-direction: column;
             gap: 10px;
         }
+        #top-left-controls { left: 10px; }
+        #top-right-controls { right: 10px; }
+
+        #info-panel { left:10px; top: 60px; max-width:380px; }
+        #metrics-panel { right:10px; top: 60px; width: 320px; display: flex; flex-direction: column; gap: 15px; }
+        #presets-panel { left: 10px; top: 60px; width: 180px; display: flex; flex-direction: column; gap: 10px; }
         
-        #info-panel.hidden, #metrics-panel.hidden, #presets-panel.hidden {
-            opacity: 0;
-            visibility: hidden;
+        /* --- Bottom Control Bar (NEW) --- */
+        #bottom-bar {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 101;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 8px 20px;
+            background-color:rgba(22,27,34,0.9);
+            border:1px solid var(--control-border);
+            border-radius:8px;
+            backdrop-filter:blur(8px);
         }
+        #bottom-bar .control-group { display: flex; align-items: center; gap: 8px; }
+        #bottom-bar label { font-size: 0.9em; }
+        #bottom-bar input[type=range] { width: 80px; }
+
+
+        /* --- Generic UI Elements (from new code) --- */
+        button {
+            padding: 8px 12px;
+            background-color: transparent;
+            border: 1px solid var(--control-border);
+            color: var(--text-color);
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        button:hover { background-color: var(--header-color); color: var(--bg-color); }
+        button .fa-fw { color: var(--icon-color); margin-right: 6px; transition: color 0.2s; }
+        button:hover .fa-fw { color: var(--bg-color); }
         
         h1{color:var(--header-color);font-weight:300;font-size:1.5em;margin-top:0;margin-bottom:10px;}
-        h3{color:var(--header-color);font-weight:400;font-size:1em;margin:0 0 8px 0;text-align: center; border-bottom: 1px solid var(--control-border); padding-bottom: 5px;}
+        h3{color:var(--header-color);font-weight:400;font-size:1em;margin:10px 0 8px 0;text-align: center; border-bottom: 1px solid var(--control-border); padding-bottom: 5px;}
         p{font-size:.9em;line-height:1.5;margin-top:0;margin-bottom:15px;}
         ul {padding-left: 20px; margin-bottom: 15px;}
         li {margin-bottom: 5px;}
         strong{color:var(--header-color);font-weight:500;}
+        
         .controls-group{display:grid;grid-template-columns:1fr 2fr .5fr;align-items:center;gap:5px 10px;font-size:.9em;}
-        input[type=range]{-webkit-appearance:none;width:100%;height:5px;background:#444;border-radius:5px;outline:none;}
+        input[type=range]{-webkit-appearance:none;width:100%;height:5px;background:#444;border-radius:5px;outline:none; vertical-align: middle;}
         input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:15px;height:15px;background:var(--header-color);border-radius:50%;cursor:pointer;}
+        
         details{margin-bottom:10px;}
         summary{font-weight:bold;cursor:pointer;color:var(--header-color);padding-bottom:5px;border-bottom:1px solid var(--control-border);margin-bottom:10px;outline:none;}
         summary small{font-weight:300;color:var(--text-color);opacity:0.8;}
         .chart-container canvas { width: 100%; height: 120px; background-color: transparent; border-radius: 4px; border: 1px solid var(--control-border);}
         
-        /* NEW: Styles for the global controls section */
-        .global-controls {
-            border-top: 1px solid var(--control-border);
-            border-bottom: 1px solid var(--control-border);
-            padding: 15px 0;
-            margin-bottom: 15px;
-        }
-        .global-controls .controls-group {
-             grid-template-columns: 100px 1fr 50px;
-        }
-         .global-controls button {
-            grid-column: 1 / -1; /* Make button span all columns */
-            margin-top: 10px;
-            padding: 5px;
-            font-size: 0.8em;
-         }
+        .global-controls { border-top: 1px solid var(--control-border); border-bottom: 1px solid var(--control-border); padding: 15px 0; margin-bottom: 15px; }
+        .global-controls .controls-group { grid-template-columns: 100px 1fr 50px; }
+        .global-controls button { grid-column: 1 / -1; margin-top: 10px; padding: 5px; font-size: 0.8em; }
 
+        /* --- NEW: User Preset Styling --- */
+        #user-presets-container { margin-top: 20px; }
+        #user-presets-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px;}
+        .preset-save-group { display: flex; gap: 5px; margin-top: 15px; }
+        .preset-save-group input { flex-grow: 1; background: var(--bg-color); border: 1px solid var(--control-border); color: var(--text-color); border-radius: 5px; padding: 0 8px; }
+        .preset-save-group button { padding: 5px 10px; font-size: 0.8em; flex-shrink: 0; }
     </style>
 </head>
 <body>
     
     <div id="top-left-controls">
-        <button id="toggle-panel-btn">Show Controls</button>
-        <button id="toggle-presets-btn">0</button>
-        <button id="randomize-btn">Randomize</button>
+        <button id="toggle-panel-btn" title="Show/Hide Simulation Controls"><i class="fa-solid fa-sliders fa-fw"></i>Controls</button>
+        <button id="toggle-presets-btn" title="Show/Hide Presets"><i class="fa-solid fa-swatchbook fa-fw"></i>Presets</button>
     </div>
 
     <div id="top-right-controls">
-        <button id="toggle-metrics-btn">Show Metrics</button>
+        <button id="toggle-metrics-btn" title="Show/Hide Performance Metrics"><i class="fa-solid fa-chart-line fa-fw"></i>Metrics</button>
     </div>
 
-    <div id="info-panel" class="hidden">
+    <div id="info-panel" class="panel hidden">
         <h1>Symbiosis, Predation & Chaos</h1>
         <p>
            This simulation runs on a set of rules designed for constant change and balance:
@@ -124,34 +126,54 @@
            </ul>
         </p>
         
-        <!-- NEW: Container for global simulation controls -->
         <div class="global-controls">
             <div class="controls-group">
                 <label for="box-size-slider">Box Size</label>
                 <input type="range" id="box-size-slider" min="100" max="10000" step="200">
                 <span id="box-size-value">1000</span>
-                <button id="toggle-wrap-btn">Wrap: ON</button>
+                <button id="toggle-wrap-btn" title="Toggle between wrapping and bouncing off walls">Wrap: ON</button>
             </div>
         </div>
         
         <div class="controls"></div>
     </div>
     
-    <div id="presets-panel" class="hidden">
-        <h3>Presets</h3>
-        <button id="load-sha1-btn">SHA1</button>
-        <button id="load-sh2-btn">SH2</button>
-        <button id="load-sha3-btn">SHA3</button>
-        <button id="load-sha4-btn">SHA4</button>
+    <div id="presets-panel" class="panel hidden">
+        <h3>Official Presets</h3>
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+            <button id="load-sha1-btn">SHA1</button>
+            <button id="load-sh2-btn">SH2</button>
+            <button id="load-sha3-btn">SHA3</button>
+            <button id="load-sha4-btn">SHA4</button>
+        </div>
+        <!-- NEW: User preset section -->
+        <div id="user-presets-container">
+            <h3>My Presets</h3>
+            <div id="user-presets-list"></div>
+            <div class="preset-save-group">
+                <input type="text" id="preset-name-input" placeholder="New Preset Name...">
+                <button id="save-preset-btn">Save</button>
+            </div>
+        </div>
     </div>
 
-    <div id="metrics-panel" class="hidden">
+    <div id="metrics-panel" class="panel hidden">
         <div class="chart-container"><h3>Population</h3><canvas id="population-chart"></canvas></div>
         <div class="chart-container"><h3>Intra-Color Collisions / frame</h3><canvas id="intra-collision-chart"></canvas></div>
         <div class="chart-container"><h3>Inter-Color Collisions / frame</h3><canvas id="inter-collision-chart"></canvas></div>
         <div class="chart-container"><h3>Average Velocity</h3><canvas id="velocity-chart"></canvas></div>
     </div>
 
+    <!-- NEW: Main control bar -->
+    <div id="bottom-bar">
+        <button id="play-pause-btn" title="Play/Pause Simulation"><i class="fa-solid fa-pause fa-fw"></i></button>
+        <div class="control-group">
+             <label for="speed-slider" title="Simulation Speed">Speed</label>
+             <input type="range" id="speed-slider" min="1" max="5" step="1" value="1">
+        </div>
+        <button id="randomize-btn" title="Randomize all parameters"><i class="fa-solid fa-shuffle fa-fw"></i>Randomize</button>
+        <button id="reset-view-btn" title="Reset Camera View"><i class="fa-solid fa-camera fa-fw"></i>Reset View</button>
+    </div>
 
     <script type="importmap">
         {"imports":{"three":"https://unpkg.com/three@0.157.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.157.0/examples/jsm/"}}
@@ -163,7 +185,7 @@
         const GLOBAL_CONFIG = {
             PARTICLE_COUNT_PER_TYPE: 500,
             MAX_MASS: 50.0,
-            INITIAL_BOX_SIZE: 1000, // NEW: Renamed for clarity
+            INITIAL_BOX_SIZE: 1000,
             MAX_SPEED: 15.0,
         };
 
@@ -190,8 +212,11 @@
         // NEW: Dynamic simulation parameters
         let boxSize;
         let isWrapEnabled = true;
+        let isPaused = false;
+        let animationFrameId;
+        let simulationSpeed = 1;
 
-        let scene, camera, renderer, controls;
+        let scene, camera, renderer, controls, boxHelper; // Added boxHelper
         let particleGroups = [];
         let allParticles = [];
         let particleMaterials = [];
@@ -209,8 +234,8 @@
 
         function init() {
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
-            camera.position.z = 700;
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20000); // Increased far plane for large box sizes
+            camera.position.z = 1200; // Pulled back a bit
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
@@ -218,38 +243,86 @@
             controls.enableDamping = true;
             
             boxSize = GLOBAL_CONFIG.INITIAL_BOX_SIZE;
+
+            // NEW: Add visual box helper
+            boxHelper = new THREE.BoxHelper(new THREE.Mesh(), 0x30363d);
+            scene.add(boxHelper);
+
             setupUI();
             
             randomizeConfig();
             resetSimulation();
             window.addEventListener('resize', () => { location.reload() });
             
-            // --- Standard Button Listeners ---
-            document.getElementById('randomize-btn').addEventListener('click', () => { randomizeConfig(); resetSimulation(); });
-            const toggleBtn = document.getElementById('toggle-panel-btn'); const panel = document.getElementById('info-panel'); toggleBtn.textContent = panel.classList.contains('hidden') ? 'Show Controls' : 'Hide Controls'; toggleBtn.addEventListener('click', () => { panel.classList.toggle('hidden'); toggleBtn.textContent = panel.classList.contains('hidden') ? 'Show Controls' : 'Hide Controls'; });
-            const toggleMetricsBtn = document.getElementById('toggle-metrics-btn'); const metricsPanel = document.getElementById('metrics-panel'); toggleMetricsBtn.textContent = metricsPanel.classList.contains('hidden') ? 'Show Metrics' : 'Hide Metrics'; toggleMetricsBtn.addEventListener('click', () => { metricsPanel.classList.toggle('hidden'); toggleMetricsBtn.textContent = metricsPanel.classList.contains('hidden') ? 'Show Metrics' : 'Hide Metrics'; });
-            const togglePresetsBtn = document.getElementById('toggle-presets-btn'); const presetsPanel = document.getElementById('presets-panel'); togglePresetsBtn.addEventListener('click', () => { presetsPanel.classList.toggle('hidden'); });
-            document.getElementById('load-sha1-btn').addEventListener('click', () => { loadPreset('SHA1'); resetSimulation(); presetsPanel.classList.add('hidden'); });
-            document.getElementById('load-sh2-btn').addEventListener('click', () => { loadPreset('SH2'); resetSimulation(); presetsPanel.classList.add('hidden'); });
-            document.getElementById('load-sha3-btn').addEventListener('click', () => { loadPreset('SHA3'); resetSimulation(); presetsPanel.classList.add('hidden'); });
-            document.getElementById('load-sha4-btn').addEventListener('click', () => { loadPreset('SHA4'); resetSimulation(); presetsPanel.classList.add('hidden'); });
+            animate();
+        }
 
-            // NEW: Listeners for the global controls
+        function setupUI() {
+            // Panel Toggles
+            const infoPanel = document.getElementById('info-panel');
+            const metricsPanel = document.getElementById('metrics-panel');
+            const presetsPanel = document.getElementById('presets-panel');
+            document.getElementById('toggle-panel-btn').addEventListener('click', () => infoPanel.classList.toggle('hidden'));
+            document.getElementById('toggle-metrics-btn').addEventListener('click', () => metricsPanel.classList.toggle('hidden'));
+            document.getElementById('toggle-presets-btn').addEventListener('click', () => presetsPanel.classList.toggle('hidden'));
+
+            // NEW: Bottom Bar Controls
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            playPauseBtn.addEventListener('click', () => {
+                isPaused = !isPaused;
+                playPauseBtn.innerHTML = isPaused ? '<i class="fa-solid fa-play fa-fw"></i>' : '<i class="fa-solid fa-pause fa-fw"></i>';
+            });
+            document.getElementById('speed-slider').addEventListener('input', e => simulationSpeed = parseInt(e.target.value, 10));
+            document.getElementById('randomize-btn').addEventListener('click', () => { randomizeConfig(); resetSimulation(); });
+            document.getElementById('reset-view-btn').addEventListener('click', () => controls.reset());
+
+            // Global Sim Controls in Info Panel
             const boxSizeSlider = document.getElementById('box-size-slider');
             const boxSizeValue = document.getElementById('box-size-value');
             const toggleWrapBtn = document.getElementById('toggle-wrap-btn');
             
             boxSizeSlider.value = boxSize;
             boxSizeValue.textContent = boxSize;
-
             boxSizeSlider.addEventListener('input', (e) => {
                 boxSize = parseFloat(e.target.value);
                 boxSizeValue.textContent = boxSize;
+                boxHelper.scale.setScalar(boxSize); // Update visual box
             });
-
             toggleWrapBtn.addEventListener('click', () => {
                 isWrapEnabled = !isWrapEnabled;
                 toggleWrapBtn.textContent = isWrapEnabled ? 'Wrap: ON' : 'Wrap: OFF';
+            });
+            
+            // Preset Buttons
+            document.getElementById('load-sha1-btn').addEventListener('click', () => { loadPreset('SHA1'); presetsPanel.classList.add('hidden'); });
+            document.getElementById('load-sh2-btn').addEventListener('click', () => { loadPreset('SH2'); presetsPanel.classList.add('hidden'); });
+            document.getElementById('load-sha3-btn').addEventListener('click', () => { loadPreset('SHA3'); presetsPanel.classList.add('hidden'); });
+            document.getElementById('load-sha4-btn').addEventListener('click', () => { loadPreset('SHA4'); presetsPanel.classList.add('hidden'); });
+
+            // NEW: User Preset listeners
+            document.getElementById('save-preset-btn').addEventListener('click', saveUserPreset);
+            loadUserPresets();
+
+            // Dynamic Per-Type Controls
+            const container = document.querySelector('.controls');
+            container.innerHTML = '';
+            const sliderOrder = ['PLAGE_MIN','PLAGE_MAX','REPULSIVE_FORCE','ATTRACTIVE_FORCE', 'SYMBIOTIC_REPEL_DIST', 'SYMBIOTIC_ATTRACT_DIST', 'SYMBIOTIC_ATTRACT_FORCE', 'PREDATOR_REPEL_FORCE', 'PREDATOR_VIEW_DISTANCE','DAMPING'];
+            const colorInfo = [ // Using more descriptive relations from new code
+                { name: 'Red', relations: 'Chases Green, Flees Blue' }, 
+                { name: 'Green', relations: 'Chases Blue, Flees Red' }, 
+                { name: 'Blue', relations: 'Chases Red, Flees Green' }
+            ];
+            colorInfo.forEach((info, typeIndex) => {
+                const details = document.createElement('details'); const summary = document.createElement('summary'); summary.innerHTML = `${info.name} Group <small>(${info.relations})</small>`; details.appendChild(summary);
+                const controlsGroup = document.createElement('div'); controlsGroup.className = 'controls-group';
+                for (const key of sliderOrder) {
+                    const r = RANGES[key]; const labelText = key.replace(/_/g, ' '); const label = document.createElement('label'); label.htmlFor = `${typeIndex}-${key}`; label.textContent = labelText;
+                    const slider = document.createElement('input'); slider.type = 'range'; slider.id = `${typeIndex}-${key}`; slider.min = r.min; slider.max = r.max; slider.step = r.step;
+                    const valueSpan = document.createElement('span'); valueSpan.id = `${typeIndex}-${key}-value`;
+                    controlsGroup.append(label, slider, valueSpan);
+                    slider.addEventListener('input', e => { TYPE_CONFIGS[typeIndex][key] = parseFloat(e.target.value); updateUIToMatchConfig(); });
+                }
+                details.appendChild(controlsGroup); container.appendChild(details);
             });
         }
 
@@ -284,34 +357,47 @@
             const groupBlue = createParticleGroup(2, particleMaterials[2]);
             particleGroups.push(groupRed, groupGreen, groupBlue);
             allParticles.push(...groupRed, ...groupGreen, ...groupBlue);
+            
+            // NEW: update box helper on reset
+            boxHelper.scale.setScalar(boxSize);
         }
 
         function animate() {
-            requestAnimationFrame(animate);
-            metrics.intraCollisions = [0, 0, 0];
-            metrics.interCollisions = [0, 0, 0];
-            updateParticles();
-            calculatePostUpdateMetrics();
+            animationFrameId = requestAnimationFrame(animate);
+
+            if (isPaused) {
+                controls.update(); // Still allow camera movement when paused
+                renderer.render(scene, camera);
+                return;
+            };
+
+            // NEW: Run simulation multiple steps per frame for speed control
+            for (let i = 0; i < simulationSpeed; i++) {
+                metrics.intraCollisions = [0, 0, 0];
+                metrics.interCollisions = [0, 0, 0];
+                updateParticles();
+                calculatePostUpdateMetrics();
+            }
+
             updateGraphs();
             controls.update();
             renderer.render(scene, camera);
         }
 
+        // UNCHANGED simulation functions
         function updateParticles() {
             for (const p of allParticles) { p.canChangeColor = true; calculateForcesForParticle(p); }
             const colorChanges = handleCollisions();
             if (colorChanges.length > 0) { applyColorChanges(colorChanges); }
             for (const p of allParticles) { updateParticleStateAndMesh(p); }
         }
-
         function calculateForcesForParticle(p) {
             const p_config = TYPE_CONFIGS[p.type];
             p.ax = 0; p.ay = 0; p.az = 0;
-            const halfBox = boxSize / 2; // MODIFIED: Use dynamic boxSize
+            const halfBox = boxSize / 2;
             for (const other of allParticles) {
                 if (p === other) continue;
                 let dx = other.x - p.x; let dy = other.y - p.y; let dz = other.z - p.z;
-                // MODIFIED: Wrapping logic is now conditional
                 if (isWrapEnabled) {
                     if (dx > halfBox) dx -= boxSize; else if (dx < -halfBox) dx += boxSize;
                     if (dy > halfBox) dy -= boxSize; else if (dy < -halfBox) dy += boxSize;
@@ -348,16 +434,14 @@
                 }
             }
         }
-
         function handleCollisions() {
-            const halfBox = boxSize / 2; // MODIFIED: Use dynamic boxSize
+            const halfBox = boxSize / 2;
             const colorChanges = [];
             for (let i = 0; i < allParticles.length; i++) {
                 const p1 = allParticles[i];
                 for (let j = i + 1; j < allParticles.length; j++) {
                     const p2 = allParticles[j];
                     let dx = p2.x - p1.x; let dy = p2.y - p1.y; let dz = p2.z - p1.z;
-                    // MODIFIED: Wrapping logic is now conditional
                     if (isWrapEnabled) {
                         if (dx > halfBox) dx -= boxSize; else if (dx < -halfBox) dx += boxSize;
                         if (dy > halfBox) dy -= boxSize; else if (dy < -halfBox) dy += boxSize;
@@ -399,7 +483,6 @@
             }
             return colorChanges;
         }
-
         function applyColorChanges(changes) {
             const uniqueChanges = new Map();
             for(const change of changes){ uniqueChanges.set(change.particle, change.newType); }
@@ -415,7 +498,6 @@
                 particle.mesh.material = particleMaterials[newType];
             });
         }
-
         function updateParticleStateAndMesh(p) {
             const p_config = TYPE_CONFIGS[p.type];
             p.vx += p.ax; p.vy += p.ay; p.vz += p.az;
@@ -423,46 +505,20 @@
             const speed = Math.sqrt(p.vx*p.vx + p.vy*p.vy + p.vz*p.vz);
             if (speed > GLOBAL_CONFIG.MAX_SPEED) { const f = GLOBAL_CONFIG.MAX_SPEED/speed; p.vx*=f; p.vy*=f; p.vz*=f; }
             p.x += p.vx; p.y += p.vy; p.z += p.vz;
-            
-            // NEW: Boundary logic now depends on the isWrapEnabled flag.
             const halfBox = boxSize / 2;
             if (isWrapEnabled) {
-                // Original wrapping behavior
                 if (p.x>halfBox) p.x-=boxSize; else if (p.x<-halfBox) p.x+=boxSize;
                 if (p.y>halfBox) p.y-=boxSize; else if (p.y<-halfBox) p.y+=boxSize;
                 if (p.z>halfBox) p.z-=boxSize; else if (p.z<-halfBox) p.z+=boxSize;
             } else {
-                // New bouncing behavior
-                if (p.x > halfBox) { p.x = halfBox; p.vx *= -1; } 
-                else if (p.x < -halfBox) { p.x = -halfBox; p.vx *= -1; }
-                if (p.y > halfBox) { p.y = halfBox; p.vy *= -1; } 
-                else if (p.y < -halfBox) { p.y = -halfBox; p.vy *= -1; }
-                if (p.z > halfBox) { p.z = halfBox; p.vz *= -1; } 
-                else if (p.z < -halfBox) { p.z = -halfBox; p.vz *= -1; }
+                if (p.x > halfBox) { p.x = halfBox; p.vx *= -0.9; } else if (p.x < -halfBox) { p.x = -halfBox; p.vx *= -0.9; }
+                if (p.y > halfBox) { p.y = halfBox; p.vy *= -0.9; } else if (p.y < -halfBox) { p.y = -halfBox; p.vy *= -0.9; }
+                if (p.z > halfBox) { p.z = halfBox; p.vz *= -0.9; } else if (p.z < -halfBox) { p.z = -halfBox; p.vz *= -0.9; }
             }
-
             p.mesh.position.set(p.x, p.y, p.z);
         }
 
-        function setupUI() {
-            const container = document.querySelector('.controls');
-            container.innerHTML = '';
-            const sliderOrder = ['PLAGE_MIN','PLAGE_MAX','REPULSIVE_FORCE','ATTRACTIVE_FORCE', 'SYMBIOTIC_REPEL_DIST', 'SYMBIOTIC_ATTRACT_DIST', 'SYMBIOTIC_ATTRACT_FORCE', 'PREDATOR_REPEL_FORCE', 'PREDATOR_VIEW_DISTANCE','DAMPING'];
-            const colorInfo = [ { name: 'Red', relations: 'Prey to Blue, Symbiotic with Green' }, { name: 'Green', relations: 'Prey to Red, Symbiotic with Blue' }, { name: 'Blue', relations: 'Prey to Green, Symbiotic with Red' } ];
-            colorInfo.forEach((info, typeIndex) => {
-                const details = document.createElement('details'); const summary = document.createElement('summary'); summary.innerHTML = `${info.name} Group <small>(${info.relations})</small>`; details.appendChild(summary);
-                const controlsGroup = document.createElement('div'); controlsGroup.className = 'controls-group';
-                for (const key of sliderOrder) {
-                    const r = RANGES[key]; const labelText = key.replace(/_/g, ' '); const label = document.createElement('label'); label.htmlFor = `${typeIndex}-${key}`; label.textContent = labelText;
-                    const slider = document.createElement('input'); slider.type = 'range'; slider.id = `${typeIndex}-${key}`; slider.min = r.min; slider.max = r.max; slider.step = r.step;
-                    const valueSpan = document.createElement('span'); valueSpan.id = `${typeIndex}-${key}-value`;
-                    controlsGroup.append(label, slider, valueSpan);
-                    slider.addEventListener('input', e => { TYPE_CONFIGS[typeIndex][key] = parseFloat(e.target.value); updateUIToMatchConfig(); });
-                }
-                details.appendChild(controlsGroup); container.appendChild(details);
-            });
-        }
-        
+        // UNCHANGED supporting functions
         function setupMetrics() {
             const lineColors = [particleMaterials[0].color.getStyle(), particleMaterials[1].color.getStyle(), particleMaterials[2].color.getStyle()];
             populationGraph = new SimpleGraph('population-chart', { colors: lineColors, maxVal: GLOBAL_CONFIG.PARTICLE_COUNT_PER_TYPE * 3 });
@@ -470,20 +526,18 @@
             intraCollisionGraph = new SimpleGraph('intra-collision-chart', { colors: lineColors, minVal: 5 });
             interCollisionGraph = new SimpleGraph('inter-collision-chart', { colors: lineColors, minVal: 5 });
         }
-        
         function calculatePostUpdateMetrics() {
-            metrics.totalVelocity = [0, 0, 0]; metrics.avgVelocity = [0, 0, 0]; metrics.population = [0, 0, 0];
+            let totalVelocity = [0, 0, 0];
+            metrics.avgVelocity = [0, 0, 0]; metrics.population = [0, 0, 0];
             for (let i = 0; i < 3; i++) { metrics.population[i] = particleGroups[i] ? particleGroups[i].length : 0; }
-            for (const p of allParticles) { const speed = Math.sqrt(p.vx*p.vx + p.vy*p.vy + p.vz*p.vz); metrics.totalVelocity[p.type] += speed; }
-            for (let i = 0; i < 3; i++) { metrics.avgVelocity[i] = (metrics.population[i] > 0) ? (metrics.totalVelocity[i] / metrics.population[i]) : 0; }
+            for (const p of allParticles) { const speed = Math.sqrt(p.vx*p.vx + p.vy*p.vy + p.vz*p.vz); totalVelocity[p.type] += speed; }
+            for (let i = 0; i < 3; i++) { metrics.avgVelocity[i] = (metrics.population[i] > 0) ? (totalVelocity[i] / metrics.population[i]) : 0; }
         }
-        
         function updateGraphs() {
             populationGraph.addDataPoint(metrics.population); intraCollisionGraph.addDataPoint(metrics.intraCollisions); interCollisionGraph.addDataPoint(metrics.interCollisions); velocityGraph.addDataPoint(metrics.avgVelocity);
             const metricsPanel = document.getElementById('metrics-panel');
             if (!metricsPanel.classList.contains('hidden')) { populationGraph.draw(); intraCollisionGraph.draw(); interCollisionGraph.draw(); velocityGraph.draw(); }
         }
-
         function updateUIToMatchConfig() {
             if (!TYPE_CONFIGS || TYPE_CONFIGS.length === 0) return;
             TYPE_CONFIGS.forEach((config, typeIndex) => {
@@ -497,7 +551,6 @@
                 }
             });
         }
-        
         function createRandomConfig() {
             const newConfig = {};
             for (const key in RANGES) { const r = RANGES[key]; const p = r.step.toString().includes('.') ? r.step.toString().split('.')[1].length : 0; newConfig[key] = parseFloat((Math.random() * (r.max - r.min) + r.min).toFixed(p)); }
@@ -505,12 +558,64 @@
             if (newConfig.SYMBIOTIC_REPEL_DIST >= newConfig.SYMBIOTIC_ATTRACT_DIST) { newConfig.SYMBIOTIC_REPEL_DIST = Math.max(0, newConfig.SYMBIOTIC_ATTRACT_DIST - 10); }
             return newConfig;
         }
-
         function randomizeConfig() { TYPE_CONFIGS = [createRandomConfig(), createRandomConfig(), createRandomConfig()]; updateUIToMatchConfig(); }
-        function loadPreset(name) { const preset = PRESET_CONFIGS[name]; if (preset) { TYPE_CONFIGS = structuredClone(preset); updateUIToMatchConfig(); } else { console.error(`Preset "${name}" not found!`); } }
+        
+        // MODIFIED to support user presets
+        function loadPreset(name, isUserPreset = false) {
+            let preset;
+            if (isUserPreset) {
+                try { preset = JSON.parse(localStorage.getItem(`esh-preset_${name}`)); } catch (e) { console.error("Could not load user preset", e); return; }
+            } else {
+                preset = PRESET_CONFIGS[name];
+            }
+            if (preset) {
+                TYPE_CONFIGS = structuredClone(preset);
+                updateUIToMatchConfig();
+                resetSimulation();
+            } else { console.error(`Preset "${name}" not found!`); }
+        }
+
+        // --- NEW: USER PRESET MANAGEMENT ---
+        function saveUserPreset() {
+            const nameInput = document.getElementById('preset-name-input');
+            const name = nameInput.value.trim();
+            if (!name) { alert("Please enter a name for the preset."); return; }
+            try {
+                localStorage.setItem(`esh-preset_${name}`, JSON.stringify(TYPE_CONFIGS));
+                nameInput.value = '';
+                loadUserPresets(); // Refresh the list
+            } catch (e) {
+                console.error("Could not save preset to localStorage.", e);
+                alert("Could not save preset. Your browser may have localStorage disabled or full.");
+            }
+        }
+
+        function loadUserPresets() {
+            const listContainer = document.getElementById('user-presets-list');
+            listContainer.innerHTML = '';
+            const container = document.getElementById('user-presets-container');
+            let foundPresets = false;
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('esh-preset_')) {
+                        foundPresets = true;
+                        const name = key.replace('esh-preset_', '');
+                        const btn = document.createElement('button');
+                        btn.textContent = name;
+                        btn.onclick = () => { loadPreset(name, true); document.getElementById('presets-panel').classList.add('hidden'); };
+                        listContainer.appendChild(btn);
+                    }
+                }
+                 container.style.display = 'block'; // Show if localStorage is accessible
+            } catch (e) {
+                console.error("Could not access localStorage.", e);
+                container.style.display = 'none'; // Hide if localStorage fails
+            }
+        }
 
         init();
-        animate();
+
     </script>
 </body>
 </html>
